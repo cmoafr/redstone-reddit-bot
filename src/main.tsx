@@ -4,17 +4,25 @@ import { Devvit } from '@devvit/public-api';
 
 Devvit.configure({
   redis: true,
+  redditAPI: true,
 });
 
 Devvit.addMenuItem({
   location: 'post',
   label: 'Confirm QC post',
   onPress: async (event, context) => {
+    // TODO: Trusted members only
+
+    // Get creating timestamp
+    const postId = context.postId!;
+    const post = await context.reddit.getPostById(postId);
+    const creationTimestamp = post.createdAt.getTime();
+
     // Add to Redis
     // TODO: Make global
     const nbAdded = await context.redis.zAdd("QCposts", {
-      member: `${context.subredditName ?? ''}:${context.postId!}`,
-      score: 0 // TODO: Replace with timestamp
+      member: `${context.subredditName ?? ''}:${postId}`,
+      score: creationTimestamp,
     });
 
     // Check validity
