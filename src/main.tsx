@@ -2,8 +2,7 @@
 
 import { Devvit, RichTextBuilder } from '@devvit/public-api';
 
-const qc0DaysUrl = 'https://i.redd.it/h97he7ckb5yd1.jpeg';
-
+// TODO
 const qcDescription = `
 <insert good QC description here>
 `;
@@ -17,7 +16,6 @@ Devvit.configure({
 Devvit.addMenuItem({
   location: 'post',
   label: 'Confirm QC post',
-  // forUserType: 'moderator', // doesn't work
   onPress: async (event, context) => {
 
     // Moderators only
@@ -36,7 +34,6 @@ Devvit.addMenuItem({
     const creationTimestamp = post.createdAt.getTime();
 
     // Add to Redis
-    // TODO: Make global
     const nbAdded = await context.redis.zAdd("QCposts", {
       member: `${context.subredditName ?? ''}:${postId}`,
       score: creationTimestamp,
@@ -52,23 +49,21 @@ Devvit.addMenuItem({
     context.ui.showToast('QC post confirmed!');
 
     // Reuploading as each media ID can only be reused on the same post
+    const imageUrl = await context.assets.getURL('0days.jpg');
     const response = await context.media.upload({
-      url: qc0DaysUrl,
+      url: imageUrl,
       type: 'image',
     });
     const comment = await context.reddit.submitComment({
       id: event.targetId,
-      // FIXME: The text field is still required for some reason
-      // Will check with the community and update as necessary
-      text: 'QC post confirmation',
       richtext: new RichTextBuilder()
         .paragraph((p) => {
-          // TODO: Exact content of the message has yet to be defined
           p.text({text: qcDescription});
         })
         .image({ mediaId: response.mediaId }),
     });
 
+    // Sticky comment
     await comment.distinguish(true);
   },
 });
