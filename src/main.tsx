@@ -17,8 +17,18 @@ Devvit.configure({
 Devvit.addMenuItem({
   location: 'post',
   label: 'Confirm QC post',
+  // forUserType: 'moderator', // doesn't work
   onPress: async (event, context) => {
-    // TODO: Trusted members only
+
+    // Moderators only
+    const mods = await context.reddit.getModerators({
+      subredditName: context.subredditName ?? ''
+    }).all();
+    const asMod = mods.find(mod => mod.id == context.userId);
+    if (!asMod) {
+      context.ui.showToast('You do not have the sufficient permissions to do that.');
+      return;
+    }
 
     // Get creating timestamp
     const postId = context.postId!;
