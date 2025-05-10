@@ -73,4 +73,16 @@ Devvit.addMenuItem({
   },
 });
 
+// TEMP
+Devvit.addMenuItem({
+  location: 'post',
+  label: 'Clear QC DB',
+  onPress: async (event, context) => {
+    const mods = await context.reddit.getModerators({subredditName: context.subredditName ?? ''}).all();
+    const asMod = mods.find(mod => mod.id == context.userId);
+    if (!asMod) return;
+    await context.redis.del("QCposts");
+  },
+});
+
 export default Devvit;
