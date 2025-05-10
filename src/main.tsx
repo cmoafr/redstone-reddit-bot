@@ -17,11 +17,11 @@ Devvit.addMenuItem({
   location: 'post',
   label: 'Confirm QC post',
   onPress: async (event, context) => {
+    const sub = context.subredditName;
+    if (!sub) return;
 
     // Moderators only
-    const mods = await context.reddit.getModerators({
-      subredditName: context.subredditName ?? ''
-    }).all();
+    const mods = await context.reddit.getModerators({subredditName: sub}).all();
     const asMod = mods.find(mod => mod.id == context.userId);
     if (!asMod) {
       context.ui.showToast('You do not have the sufficient permissions to do that.');
@@ -35,7 +35,7 @@ Devvit.addMenuItem({
 
     // Add to Redis
     const nbAdded = await context.redis.zAdd("QCposts", {
-      member: `${context.subredditName ?? ''}:${postId}`,
+      member: `${sub}:${postId}`,
       score: creationTimestamp,
     });
 
@@ -47,6 +47,16 @@ Devvit.addMenuItem({
 
     // Post has been confirmed as QC
     context.ui.showToast('QC post confirmed!');
+
+    // Set post flair
+    const flairs = await context.reddit.getPostFlairTemplates(sub);
+    const flair = flairs.find(flair => flair.text.includes("QC"));
+    if (flair)
+        context.reddit.setPostFlair({
+            subredditName: sub,
+            postId: postId,
+            flairTemplateId: flair.id
+        });
 
     // Reuploading as each media ID can only be reused on the same post
     const imageUrl = await context.assets.getURL('0days.jpg');
